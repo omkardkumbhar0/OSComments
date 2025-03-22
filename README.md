@@ -39,3 +39,21 @@ A Flask-based comment system API that allows users to create sections, post comm
 - `/api/comments/<comment_id>/like` - Like a comment
 - `/api/delete-comment/<comment_id>` - Delete a comment
 - `/api/all-comments` - Get all comments
+
+## Embedding OSComments
+
+Add comments to any website in just 2 lines:
+
+```html
+<!-- Add OSComments to your site -->
+<div id="comments-container"></div>
+<script src="https://oscomments.onrender.com/v1/embed.js"></script>
+```
+
+You can customize OSComments with additional attributes:
+
+```html
+<!-- Add OSComments with custom site ID -->
+<div id="comments-container"></div>
+<script src="https://oscomments.onrender.com/v1/embed.js" data-site-id="my-site"></script>
+```
