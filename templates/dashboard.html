@@ -155,16 +155,17 @@
 <link href="https://oscomments.onrender.com/static/css/comments.css" rel="stylesheet">
 
 <!-- Comments Container -->
-<div id="comments-container"></div>
+<div id="comments-container">
 
 <!-- Required JavaScript -->
 <script src="https://oscomments.onrender.com/static/js/comments.js"><\/script>
 <script>
     new CommentsWidget('comments-container', '${sectionId}', '${apiKey}');
-<\/script>`;
+<\/script>
+</div>`;
 
         document.getElementById('snippetCode').textContent = snippet;
-        
+
         // Add implementation notes
         // document.getElementById('snippetCode').insertAdjacentHTML('afterend', `
         //     <div class="alert alert-info mt-3">
@@ -254,8 +255,8 @@
             function categorizeComment(text) {
                 if (!text) return 'neutral';
 
-                const positiveWords = ['great', 'good', 'awesome', 'excellent', 'thanks', 'helpful', 'love','nice','amazing','fantastic','wonderful','perfect','best','superb','like','well','better','beautiful','happy','cool','fine','easy','friendly','quick','glad','satisfied','useful','interesting','impressed','enjoy','comfortable','safe','clean','enjoyable','convenient'];
-                const negativeWords = ['bad', 'poor', 'terrible', 'hate', 'awful', 'worst','disappointed','uncomfortable','dirty','slow','difficult','unfriendly','unhappy','disappointing','unpleasant','unprofessional','unhelpful','unpleasant','unreliable','unfair'];
+                const positiveWords = ['great', 'good', 'awesome', 'excellent', 'thanks', 'helpful', 'love', 'nice', 'amazing', 'fantastic', 'wonderful', 'perfect', 'best', 'superb', 'like', 'well', 'better', 'beautiful', 'happy', 'cool', 'fine', 'easy', 'friendly', 'quick', 'glad', 'satisfied', 'useful', 'interesting', 'impressed', 'enjoy', 'comfortable', 'safe', 'clean', 'enjoyable', 'convenient'];
+                const negativeWords = ['bad', 'poor', 'terrible', 'hate', 'awful', 'worst', 'disappointed', 'uncomfortable', 'dirty', 'slow', 'difficult', 'unfriendly', 'unhappy', 'disappointing', 'unpleasant', 'unprofessional', 'unhelpful', 'unpleasant', 'unreliable', 'unfair'];
                 const improvementWords = ['should', 'could', 'would be better', 'suggest', 'improve', 'change', 'add', 'remove', 'enhance', 'better if', 'lack', 'missing', 'need', 'recommend'];
 
                 text = text.toLowerCase();
