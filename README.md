@@ -1,4 +1,4 @@
-# Comments API
+# OSComments - Comments API
 
 A Flask-based comment system API that allows users to create sections, post comments, reply to comments, and manage user authentication.
 
@@ -38,4 +38,4 @@ A Flask-based comment system API that allows users to create sections, post comm
 - `/api/comments/<comment_id>/replies` - Add replies to a comment
 - `/api/comments/<comment_id>/like` - Like a comment
 - `/api/delete-comment/<comment_id>` - Delete a comment
-- `/api/all-comments` - Get all comments 
+- `/api/all-comments` - Get all comments
