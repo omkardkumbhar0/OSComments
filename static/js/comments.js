@@ -136,7 +136,7 @@ class CommentsWidget {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...';
 
-            const response = await fetch(`http://localhost:5000/api/sections/${this.sectionId}/comments`, {
+            const response = await fetch(`https://oscomments.onrender.com/api/sections/${this.sectionId}/comments`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -180,7 +180,7 @@ class CommentsWidget {
     async loadComments() {
         try {
             const response = await fetch(
-                `http://localhost:5000/api/sections/${this.sectionId}/comments?blog_url=${encodeURIComponent(window.location.href)}`,
+                `https://oscomments.onrender.com/api/sections/${this.sectionId}/comments?blog_url=${encodeURIComponent(window.location.href)}`,
                 {
                     headers: {
                         'X-API-Key': this.apiKey
@@ -348,7 +348,7 @@ class CommentsWidget {
     // Add this method to the CommentsWidget class
     async toggleLike(commentId) {
         try {
-            const response = await fetch(`http://localhost:5000/api/comments/${commentId}/like`, {
+            const response = await fetch(`https://oscomments.onrender.com/api/comments/${commentId}/like`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -370,7 +370,7 @@ class CommentsWidget {
     async submitReply(commentId, replyText) {
         try {
             const nameInput = document.getElementById(`comment-name-${this.sectionId}`);
-            const response = await fetch(`http://localhost:5000/api/comments/${commentId}/replies`, {
+            const response = await fetch(`https://oscomments.onrender.com/api/comments/${commentId}/replies`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -434,7 +434,7 @@ class CommentsWidget {
 
 async function submitComment(sectionId, commentText, username) {
     try {
-        const response = await fetch(`/api/sections/${sectionId}/comments`, {
+        const response = await fetch(`https://oscomments.onrender.com/api/sections/${sectionId}/comments`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
