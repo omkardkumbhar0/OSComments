@@ -1,0 +1,1032 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4 mb-0">Dashboard</h2>
+        <form action="/logout" method="post" class="d-inline">
+            <button type="submit" class="btn btn-outline-danger">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+        </form>
+    </div>
+
+    <!-- API Key Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Your API Key</h5>
+        </div>
+        <div class="card-body">
+            <div class="input-group">
+                <input type="text" class="form-control" id="apiKey" value="{{ api_key }}" readonly>
+                <button class="btn btn-outline-secondary" onclick="copyApiKey()">
+                    <i class="bi bi-clipboard"></i> Copy
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comment Sections Management -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Comment Sections</h5>
+            <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#newSectionModal" style="
+            background-color: #939393;
+        ">
+                <i class="bi bi-plus-circle"></i> New Section
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="sections-container">
+                <!-- Sections will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Comments List -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">All Comments</h5>
+                <div class="d-flex gap-2">
+                    <select id="sectionFilter" class="form-select form-select-sm w-auto">
+                        <option value="">All Sections</option>
+                    </select>
+                    <input type="text" id="searchInput" class="form-control form-control-sm"
+                        placeholder="Search comments...">
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="comments-container">
+                <!-- Comments will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Section Modal -->
+<div class="modal fade" id="newSectionModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Comment Section</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newSectionForm">
+                    <div class="mb-3">
+                        <label class="form-label">Section Name</label>
+                        <input type="text" class="form-control" id="sectionName" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Section</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Code Snippet Modal -->
+<div class="modal fade" id="codeSnippetModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Integration Code</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre><code id="snippetCode"></code></pre>
+                <button class="btn btn-primary mt-2" onclick="copySnippet()">
+                    <i class="bi bi-clipboard"></i> Copy Code
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const apiKey = '{{ api_key }}';
+
+    let sectionsData = [];
+
+    async function loadSections() {
+        const response = await fetch('/api/my-sections');
+        sectionsData = await response.json();
+
+        // Update sections container
+        document.getElementById('sections-container').innerHTML = sectionsData.map(section => `
+        <div class="card mb-2">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0">${section.name}</h6>
+                    <small class="text-muted">Section ID: ${section.id}</small>
+                </div>
+                <div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="showCodeSnippet('${section.id}')">
+                        <i class="bi bi-code-slash"></i> Get Code
+                    </button>
+                    
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+        // Update section filter
+        const sectionFilter = document.getElementById('sectionFilter');
+        sectionFilter.innerHTML = `
+        <option value="">All Sections</option>
+        ${sectionsData.map(section => `
+            <option value="${section.id}">${section.name}</option>
+        `).join('')}
+    `;
+    }
+
+    // Update the showCodeSnippet function
+
+    function showCodeSnippet(sectionId) {
+        const snippet = `<!-- Required CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
+<link href="http://localhost:5000/static/css/comments.css" rel="stylesheet">
+
+<!-- Comments Container -->
+<div id="comments-container"></div>
+
+<!-- Required JavaScript -->
+<script src="http://localhost:5000/static/js/comments.js"><\/script>
+<script>
+    new CommentsWidget('comments-container', '${sectionId}', '${apiKey}');
+<\/script>`;
+
+        document.getElementById('snippetCode').textContent = snippet;
+        
+        // Add implementation notes
+        // document.getElementById('snippetCode').insertAdjacentHTML('afterend', `
+        //     <div class="alert alert-info mt-3">
+        //         <h6 class="mb-2">Implementation Notes:</h6>
+        //         <ul class="mb-0">
+        //             <li>Add CSS links in the <code>&lt;head&gt;</code> section</li>
+        //             <li>Place container div where you want comments to appear</li>
+        //             <li>Add JavaScript before closing <code>&lt;/body&gt;</code> tag</li>
+        //             <li>Replace <code>localhost:5000</code> with your actual domain in production</li>
+        //         </ul>
+        //     </div>
+        // `);
+
+        new bootstrap.Modal(document.getElementById('codeSnippetModal')).show();
+    }
+
+    function copyApiKey() {
+        navigator.clipboard.writeText(apiKey);
+        alert('API key copied to clipboard!');
+    }
+
+    function copySnippet() {
+        const snippetCode = document.getElementById('snippetCode').textContent;
+        navigator.clipboard.writeText(snippetCode);
+        alert('Code snippet copied to clipboard!');
+    }
+
+    document.getElementById('newSectionForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('sectionName').value;
+
+        const response = await fetch('/api/sections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ section_name: name })
+        });
+
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('newSectionModal')).hide();
+            loadSections();
+        }
+    });
+
+    const commentsContainer = document.getElementById('comments-container');
+    const searchInput = document.getElementById('searchInput');
+
+    // Replace the existing loadComments function
+
+    // Update the loadComments function to handle authentication errors
+
+    async function loadComments() {
+        try {
+            const response = await fetch('/api/all-comments');
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+            if (!response.ok) {
+                throw new Error('Failed to fetch comments');
+            }
+            const data = await response.json();
+
+            // Initialize categorized comments
+            const categorizedComments = {
+                good: [],
+                bad: [],
+                improvement: [],
+                neutral: []
+            };
+
+            // Check if we received the expected data structure
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid data format received from server');
+            }
+
+            // If data is already categorized, use it directly
+            if (data.good || data.bad || data.improvement || data.neutral) {
+                console.log('Using pre-categorized comments:', data);
+                displayCategorizedComments(data);
+                return;
+            }
+
+            // If we received an array, categorize it
+            const comments = Array.isArray(data) ? data : Object.values(data);
+
+            // Helper function to categorize comments
+            function categorizeComment(text) {
+                if (!text) return 'neutral';
+
+                const positiveWords = ['great', 'good', 'awesome', 'excellent', 'thanks', 'helpful', 'love','nice','amazing','fantastic','wonderful','perfect','best','superb','like','well','better','beautiful','happy','cool','fine','easy','friendly','quick','glad','satisfied','useful','interesting','impressed','enjoy','comfortable','safe','clean','enjoyable','convenient'];
+                const negativeWords = ['bad', 'poor', 'terrible', 'hate', 'awful', 'worst','disappointed','uncomfortable','dirty','slow','difficult','unfriendly','unhappy','disappointing','unpleasant','unprofessional','unhelpful','unpleasant','unreliable','unfair'];
+                const improvementWords = ['should', 'could', 'would be better', 'suggest', 'improve', 'change', 'add', 'remove', 'enhance', 'better if', 'lack', 'missing', 'need', 'recommend'];
+
+                text = text.toLowerCase();
+
+                if (improvementWords.some(word => text.includes(word))) {
+                    return 'improvement';
+                }
+
+                const positiveCount = positiveWords.filter(word => text.includes(word)).length;
+                const negativeCount = negativeWords.filter(word => text.includes(word)).length;
+
+                if (positiveCount > negativeCount) return 'good';
+                if (negativeCount > positiveCount) return 'bad';
+                return 'neutral';
+            }
+
+            // Categorize each comment
+            comments.forEach(comment => {
+                const category = categorizeComment(comment.comment);
+                categorizedComments[category].push(comment);
+            });
+
+            console.log('Categorized comments:', categorizedComments);
+            displayCategorizedComments(categorizedComments);
+        } catch (error) {
+            console.error('Error loading comments:', error);
+            document.getElementById('comments-container').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                Failed to load comments: ${error.message}
+                <br>
+                <small class="text-muted">Please check the console for more details.</small>
+            </div>
+        `;
+        }
+    }
+
+    // Add this before the displayCategorizedComments function
+
+    async function deleteComment(commentId) {
+        if (!confirm('Are you sure you want to delete this comment?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/delete-comment/${commentId}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete comment');
+            }
+
+            // Reload comments after successful deletion
+            await loadComments();
+        } catch (error) {
+            console.error('Error deleting comment:', error);
+            alert('Failed to delete comment. Please try again.');
+        }
+    }
+
+    // Update the displayCategorizedComments function
+    function displayCategorizedComments(categorizedComments) {
+        const container = document.getElementById('comments-container');
+
+        // Create categories layout
+        container.innerHTML = `
+        <div class="comment-categories">
+            <div class="category good">
+                <h5 class="mb-3">
+                    Positive Comments 
+                    <span class="badge bg-success">${categorizedComments.good.length}</span>
+                </h5>
+                <div id="good-comments"></div>
+            </div>
+            <div class="category bad">
+                <h5 class="mb-3">
+                    Negative Comments
+                    <span class="badge bg-danger">${categorizedComments.bad.length}</span>
+                </h5>
+                <div id="bad-comments"></div>
+            </div>
+            <div class="category improvement">
+                <h5 class="mb-3">
+                    Improvement Suggestions
+                    <span class="badge bg-primary">${categorizedComments.improvement.length}</span>
+                </h5>
+                <div id="improvement-comments"></div>
+            </div>
+            <div class="category neutral">
+                <h5 class="mb-3">
+                    Neutral Comments
+                    <span class="badge bg-secondary">${categorizedComments.neutral.length}</span>
+                </h5>
+                <div id="neutral-comments"></div>
+            </div>
+        </div>
+    `;
+
+        // Display comments in each category
+        Object.entries(categorizedComments).forEach(([category, comments]) => {
+            const categoryContainer = document.getElementById(`${category}-comments`);
+            if (!categoryContainer) return;
+
+            if (!comments || comments.length === 0) {
+                categoryContainer.innerHTML = '<p class="text-muted">No comments in this category</p>';
+                return;
+            }
+
+            // Sort comments by timestamp (newest first)
+            comments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            comments.forEach(comment => {
+                const commentElement = document.createElement('div');
+                commentElement.className = 'comment card mb-3';
+                commentElement.dataset.section = comment.section_id;
+                commentElement.innerHTML = `
+                <div class="card-body">
+                    <div class="d-flex gap-2">
+                        <div class="comment-avatar" style="background-color: '${getAvatarColor(comment.username)}'">
+                            ${comment.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h6 class="mb-1">${comment.username}</h6>
+                                <div>
+                                    <button class="btn btn-outline-primary btn-sm me-2" onclick="toggleReplyForm(${comment.id})">
+                                        <i class="bi bi-reply"></i> Reply as Owner
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" onclick="deleteComment(${comment.id})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="mb-2">${formatComment(comment.comment)}</p>
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted">${formatDate(comment.timestamp)}</small>
+                                <span class="text-muted">•</span>
+                                <small class="text-muted">
+                                    <i class="bi bi-heart-fill text-danger"></i> ${comment.likes || 0}
+                                </small>
+                                <span class="text-muted">•</span>
+                                <small class="text-muted">${comment.section_name}</small>
+                            </div>
+                            
+                            <!-- Owner Reply Form -->
+                            <div id="reply-form-${comment.id}" class="owner-reply-form mt-3" style="display: none;">
+                                <div class="mb-2">
+                                    <textarea class="form-control" id="owner-reply-${comment.id}" 
+                                            rows="2" placeholder="Type your reply as owner..."></textarea>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-primary btn-sm" onclick="submitOwnerReply(${comment.id})">
+                                        Submit Reply
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="toggleReplyForm(${comment.id})">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Replies Section -->
+                            <div class="replies-section mt-3">
+                                ${comment.replies ? comment.replies.map(reply => `
+                                    <div class="reply-item ${reply.is_owner ? 'owner-reply' : ''} p-2 mb-2">
+                                        <div class="d-flex gap-2 align-items-start">
+                                            <div class="comment-avatar" style="background-color: '${getAvatarColor(reply.username)}'">
+                                                ${reply.username.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <div class="d-flex align-items-center">
+                                                    <strong>${reply.username}</strong>
+                                                    ${reply.is_owner ? '<span class="owner-badge ms-2">Owner</span>' : ''}
+                                                </div>
+                                                <p class="mb-1">${formatComment(reply.comment)}</p>
+                                                <small class="text-muted">${formatDate(reply.timestamp)}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('') : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+                categoryContainer.appendChild(commentElement);
+            });
+        });
+    }
+
+    // Add this helper function for date formatting
+    function formatDate(timestamp) {
+        const date = new Date(timestamp);
+        return date.toLocaleString();
+    }
+
+    // Helper functions
+    function getSectionName(sectionId) {
+        const section = sectionsData.find(s => s.id === sectionId);
+        return section ? section.name : 'Unknown Section';
+    }
+
+    function getAvatarColor(username) {
+        const colors = ['#4361ee', '#3a0ca3', '#7209b7', '#f72585', '#4cc9f0'];
+        const index = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        return colors[index % colors.length];
+    }
+
+    function truncateUrl(url) {
+        return url.length > 40 ? url.substring(0, 37) + '...' : url;
+    }
+
+    function formatComment(text) {
+        return text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/`(.*?)`/g, '<code class="bg-light px-1 rounded">$1</code>')
+            .replace(/\n/g, '<br>');
+    }
+
+    // Add this function after the existing helper functions
+    async function submitOwnerReply(commentId) {
+        const replyText = document.getElementById(`owner-reply-${commentId}`).value;
+        if (!replyText.trim()) return;
+
+        try {
+            const response = await fetch(`/api/comments/${commentId}/replies`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: 'Admin',  // Or any other owner identifier
+                    comment: replyText,
+                    is_owner: true
+                })
+            });
+
+            if (!response.ok) throw new Error('Failed to submit reply');
+
+            await loadComments();
+            document.getElementById(`owner-reply-${commentId}`).value = '';
+        } catch (error) {
+            console.error('Error submitting reply:', error);
+            alert('Failed to submit reply. Please try again.');
+        }
+    }
+
+    // Add this after the existing helper functions
+
+    function toggleReplyForm(commentId) {
+        const form = document.getElementById(`reply-form-${commentId}`);
+        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        if (form.style.display === 'block') {
+            document.getElementById(`owner-reply-${commentId}`).focus();
+        }
+    }
+
+    // Update search and filter functionality
+    const sectionFilter = document.getElementById('sectionFilter');
+    sectionFilter.addEventListener('change', filterComments);
+    searchInput.addEventListener('input', filterComments);
+
+    function filterComments() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedSection = sectionFilter.value;
+
+        const sections = document.querySelectorAll('.section-header');
+        const comments = document.querySelectorAll('#comments-container .card');
+
+        sections.forEach(section => {
+            section.style.display = 'none';
+        });
+
+        comments.forEach(comment => {
+            const text = comment.textContent.toLowerCase();
+            const sectionId = comment.dataset.section;
+            const sectionMatch = !selectedSection || sectionId === selectedSection;
+            const searchMatch = text.includes(searchTerm);
+
+            if (sectionMatch && searchMatch) {
+                comment.style.display = 'block';
+                const prevHeader = comment.previousElementSibling;
+                if (prevHeader && prevHeader.classList.contains('section-header')) {
+                    prevHeader.style.display = 'block';
+                }
+            } else {
+                comment.style.display = 'none';
+            }
+        });
+    }
+
+    // Initialize
+    loadSections();
+    loadComments();
+
+    // Add this after your existing script tag
+
+    // Debug initialization
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('Dashboard initialized');
+        loadComments().catch(error => {
+            console.error('Failed to load comments:', error);
+            document.getElementById('comments-container').innerHTML = `
+            <div class="alert alert-danger">
+                Failed to load comments. Please check the console for details.
+            </div>
+        `;
+        });
+    });
+</script>
+
+<style>
+    .owner-reply-form {
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+
+    .reply-item {
+        border-left: 3px solid #dee2e6;
+        padding: 0.5rem 1rem;
+        margin-left: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .reply-item.owner-reply {
+        background-color: #f8f9fa;
+        border-left: 3px solid #198754;
+    }
+
+    .owner-badge {
+        background-color: #198754;
+        color: white;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        margin-left: 0.5rem;
+    }
+
+    .replies-section {
+        margin-top: 1rem;
+        padding-left: 1rem;
+    }
+
+    /* Add or update these styles in your <style> section */
+
+    .comment-categories {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        /* Change to 2 columns */
+        gap: 20px;
+        height: calc(100vh - 300px);
+        overflow: hidden;
+        padding: 10px;
+    }
+
+    /* Individual category styling */
+    .category {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        height: 500px;
+        /* Fixed height for each category */
+        overflow: hidden;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Category color coding with stronger visual separation */
+    .category.good {
+        border-left: 4px solid #198754;
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .category.bad {
+        border-left: 4px solid #dc3545;
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .category.improvement {
+        border-left: 4px solid #0d6efd;
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .category.neutral {
+        border-left: 4px solid #6c757d;
+        grid-column: 2;
+        grid-row: 2;
+    }
+
+    /* Category header styling */
+    .category h5 {
+        position: sticky;
+        top: 0;
+        background: inherit;
+        padding: 15px;
+        margin: 0;
+        border-bottom: 1px solid #dee2e6;
+        z-index: 10;
+        font-size: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    /* Content area adjustments */
+    .category>div:last-child {
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+        margin-right: -8px;
+        padding-right: 16px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 992px) {
+        .comment-categories {
+            grid-template-columns: 1fr;
+            /* Stack on smaller screens */
+        }
+
+        .category {
+            grid-column: 1 !important;
+            grid-row: auto !important;
+        }
+    }
+
+    /* Ensure headers stay fixed */
+    .category h5 {
+        position: sticky;
+        top: 0;
+        background: inherit;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        z-index: 1;
+    }
+
+    .comment-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+    }
+
+    .api-key {
+        background: #f5f5f5;
+        padding: 10px;
+        margin: 20px;
+        border-radius: 4px;
+    }
+
+    .btn-outline-danger {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        border-radius: 0.2rem;
+    }
+
+    .btn-outline-danger:hover {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    /* Add to your existing <style> section */
+
+    .category h5 {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .category .badge {
+        font-size: 0.8rem;
+        padding: 0.35em 0.65em;
+    }
+
+    /* Update these styles in your <style> section */
+
+    /* Container adjustments */
+    .container {
+        max-width: 100%;
+        padding: 1rem;
+    }
+
+    /* Card body containing comments */
+    .card-body {
+        padding: 1rem;
+        max-height: calc(100vh - 200px);
+        overflow: hidden;
+    }
+
+    /* Comments categories grid */
+    .comment-categories {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        height: calc(100vh - 300px);
+        /* Adjust based on header height */
+        overflow: hidden;
+        padding: 10px;
+    }
+
+    /* Individual category styling */
+    .category {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        /* Take full height of grid */
+        max-height: 100%;
+        overflow: hidden;
+    }
+
+    /* Category content area */
+    .category>div:last-child {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px;
+        margin-right: -8px;
+        /* Compensate for scrollbar */
+        padding-right: 16px;
+        /* Add extra padding for scrollbar */
+    }
+
+    /* Fixed header styling */
+    .category h5 {
+        position: sticky;
+        top: 0;
+        background: inherit;
+        padding: 15px;
+        margin: 0;
+        border-bottom: 1px solid #dee2e6;
+        z-index: 10;
+    }
+
+    /* Comment cards within categories */
+    .comment.card {
+        margin-bottom: 10px;
+    }
+
+    /* Custom scrollbar */
+    .category>div:last-child::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .category>div:last-child::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+
+    .category>div:last-child::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
+    }
+
+    .category>div:last-child::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    /* Category color coding */
+    .category.good {
+        border-left: 4px solid #198754;
+    }
+
+    .category.bad {
+        border-left: 4px solid #dc3545;
+    }
+
+    .category.improvement {
+        border-left: 4px solid #0d6efd;
+    }
+
+    .category.neutral {
+        border-left: 4px solid #6c757d;
+    }
+
+    /* Add to your existing <style> section */
+
+    .btn-outline-danger.logout-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-outline-danger.logout-btn:hover {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .btn-outline-danger.logout-btn i {
+        font-size: 1.1rem;
+    }
+
+    /* Update these color-related styles in your <style> section */
+
+    /* Card headers */
+    .card-header.bg-primary {
+        background-color: #f8f9fa !important;
+        color: #212529 !important;
+    }
+
+    /* Category colors */
+    .category.good {
+        border-left: 4px solid #666666;
+        background-color: #ffffff;
+    }
+
+    .category.bad {
+        border-left: 4px solid #999999;
+        background-color: #f8f9fa;
+    }
+
+    .category.improvement {
+        border-left: 4px solid #333333;
+        background-color: #ffffff;
+    }
+
+    .category.neutral {
+        border-left: 4px solid #cccccc;
+        background-color: #f8f9fa;
+    }
+
+    /* Badge colors */
+    .badge.bg-success {
+        background-color: #666666 !important;
+    }
+
+    .badge.bg-danger {
+        background-color: #999999 !important;
+    }
+
+    .badge.bg-primary {
+        background-color: #333333 !important;
+    }
+
+    .badge.bg-secondary {
+        background-color: #cccccc !important;
+        color: #333333;
+    }
+
+    /* Button colors */
+    .btn-primary {
+        background-color: #4d4d4d;
+        border-color: #4d4d4d;
+    }
+
+    .btn-primary:hover {
+        background-color: #333333;
+        border-color: #333333;
+    }
+
+    .btn-outline-primary {
+        color: #4d4d4d;
+        border-color: #4d4d4d;
+    }
+
+    .btn-outline-primary:hover {
+        background-color: #4d4d4d;
+        border-color: #4d4d4d;
+        color: white;
+    }
+
+    /* Owner badge */
+    .owner-badge {
+        background-color: #4d4d4d;
+    }
+
+    /* Owner reply styling */
+    .reply-item.owner-reply {
+        background-color: #f8f9fa;
+        border-left: 3px solid #4d4d4d;
+    }
+
+    /* Avatar colors */
+    .comment-avatar {
+        background: #666666 !important;
+    }
+
+    /* Custom scrollbar */
+    .category>div:last-child::-webkit-scrollbar-thumb {
+        background: #cccccc;
+    }
+
+    .category>div:last-child::-webkit-scrollbar-thumb:hover {
+        background: #999999;
+    }
+
+    /* Card shadows */
+    .card,
+    .category {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Danger button */
+    .btn-outline-danger {
+        color: #666666;
+        border-color: #666666;
+    }
+
+    .btn-outline-danger:hover {
+        background-color: #666666;
+        color: white;
+        border-color: #666666;
+    }
+
+    /* Like icon color */
+    .bi-heart-fill.text-danger {
+        color: #666666 !important;
+    }
+
+    /* Text colors */
+    .text-muted {
+        color: #666666 !important;
+    }
+
+    /* Add this to your existing <style> section */
+
+    /* Comment Sections scrollable container */
+    #sections-container {
+        max-height: 300px;
+        overflow-y: auto;
+        padding-right: 8px;
+    }
+
+    /* Custom scrollbar for sections container */
+    #sections-container::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #sections-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+
+    #sections-container::-webkit-scrollbar-thumb {
+        background: #cccccc;
+        border-radius: 3px;
+    }
+
+    #sections-container::-webkit-scrollbar-thumb:hover {
+        background: #999999;
+    }
+
+    /* Ensure consistent spacing in section cards */
+    #sections-container .card {
+        margin-bottom: 10px;
+    }
+
+    #sections-container .card:last-child {
+        margin-bottom: 0;
+    }
+
+    /* Section card hover effect */
+    #sections-container .card:hover {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: box-shadow 0.2s ease-in-out;
+    }
+</style>
+{% endblock %}

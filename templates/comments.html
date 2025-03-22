@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Comments System</title>
+    <style>
+        .comments-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .comment-form {
+            margin-bottom: 20px;
+        }
+        .comment-form input,
+        .comment-form textarea {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 8px;
+        }
+        .comment-form button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .comment {
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+        }
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .comment-text {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="comments-container">
+        <form class="comment-form" id="commentForm">
+            <input type="text" id="username" placeholder="Your name" required>
+            <textarea id="comment" placeholder="Write your comment" required></textarea>
+            <button type="submit">Submit Comment</button>
+        </form>
+        <div id="commentsList"></div>
+    </div>
+
+    <!-- Add this where you want the comments to appear -->
+    <div id="comments-container"></div>
+
+    <script>
+        // Configuration
+        const COMMENTS_API_URL = 'http://localhost:5000';
+
+        // Initialize comments
+        function initializeComments() {
+            const container = document.getElementById('comments-container');
+            
+            // Create comments HTML
+            container.innerHTML = `
+                <div class="comments-section" style="max-width: 800px; margin: 20px auto; padding: 20px;">
+                    <h3>Comments</h3>
+                    <div class="comment-form">
+                        <input type="text" id="comment-name" placeholder="Your name" style="width: 100%; margin-bottom: 10px; padding: 8px;">
+                        <textarea id="comment-text" placeholder="Write your comment..." style="width: 100%; height: 100px; margin-bottom: 10px; padding: 8px;"></textarea>
+                        <button onclick="submitComment()" style="background: #007bff; color: white; border: none; padding: 10px 20px; cursor: pointer;">Submit Comment</button>
+                    </div>
+                    <div id="comments-list" style="margin-top: 20px;"></div>
+                </div>
+            `;
+
+            // Load existing comments
+            loadComments();
+        }
+
+        // Load comments
+        async function loadComments() {
+            try {
+                const response = await fetch(`${COMMENTS_API_URL}/get_comments?blog_url=${window.location.href}`);
+                const comments = await response.json();
+                displayComments(comments);
+            } catch (error) {
+                console.error('Error loading comments:', error);
+            }
+        }
+
+        // Display comments
+        function displayComments(comments) {
+            const commentsList = document.getElementById('comments-list');
+            commentsList.innerHTML = comments.map(comment => `
+                <div class="comment" style="border-bottom: 1px solid #eee; padding: 10px 0;">
+                    <strong>${comment.username}</strong>
+                    <p>${comment.comment}</p>
+                    <small>${comment.timestamp}</small>
+                    ${comment.replies && comment.replies.length > 0 ? `
+                        <div class="replies-container mt-3 ps-4 border-start">
+                            ${comment.replies.map(reply => `
+                                <div class="reply-item d-flex gap-2 mb-2 ${reply.is_owner ? 'owner-reply p-2 rounded' : ''}">
+                                    <div class="reply-avatar" style="background: ${reply.is_owner ? '#198754' : getAvatarColor(reply.username)}">
+                                        ${reply.is_owner ? '<i class="bi bi-person-check-fill"></i>' : reply.username.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">
+                                            ${reply.username}
+                                            ${reply.is_owner ? '<span class="owner-badge">Site Owner</span>' : ''}
+                                        </h6>
+                                        <p class="mb-1">${formatComment(reply.comment)}</p>
+                                        <small class="text-muted">${formatDate(reply.timestamp)}</small>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Submit comment
+        async function submitComment() {
+            const name = document.getElementById('comment-name').value;
+            const text = document.getElementById('comment-text').value;
+
+            if (!name || !text) {
+                alert('Please fill in both name and comment');
+                return;
+            }
+
+            try {
+                await fetch(`${COMMENTS_API_URL}/add_comment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        blog_url: window.location.href,
+                        username: name,
+                        comment: text
+                    })
+                });
+
+                // Clear form
+                document.getElementById('comment-name').value = '';
+                document.getElementById('comment-text').value = '';
+
+                // Reload comments
+                loadComments();
+            } catch (error) {
+                console.error('Error submitting comment:', error);
+            }
+        }
+
+        // Initialize when page loads
+        initializeComments();
+    </script>
+</body>
+</html>

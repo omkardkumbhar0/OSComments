@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category|title }} Comments{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4 mb-0">{{ category|title }} Comments</h2>
+        <a href="/dashboard" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div id="category-comments" class="comments-list">
+                <!-- Comments will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadCategoryComments() {
+        try {
+            const url = `/api/comments/category/{{ category }}`;
+            console.log('Fetching comments from:', url);
+            
+            const response = await fetch(url, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+            
+            console.log('Response status:', response.status);
+            
+            if (response.status === 401) {
+                // Redirect to login with return URL
+                const currentPath = window.location.pathname;
+                window.location.href = `/login?next=${encodeURIComponent(currentPath)}`;
+                return;
+            }
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to load comments');
+            }
+            
+            const comments = await response.json();
+            console.log('Received comments:', comments);
+            
+            if (!Array.isArray(comments)) {
+                throw new Error('Invalid response format');
+            }
+            
+            displayComments(comments);
+        } catch (error) {
+            console.error('Error:', error);
+            if (error.message.includes('authentication') || error.message.includes('login')) {
+                const currentPath = window.location.pathname;
+                window.location.href = `/login?next=${encodeURIComponent(currentPath)}`;
+                return;
+            }
+            
+            document.getElementById('category-comments').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill"></i> 
+                    ${error.message || 'Failed to load comments. Please try refreshing the page.'}
+                </div>
+            `;
+        }
+    }
+
+    function formatTimestamp(timestamp) {
+        return new Date(timestamp).toLocaleString();
+    }
+
+    function displayComments(comments) {
+        const container = document.getElementById('category-comments');
+        
+        if (!comments.length) {
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> 
+                    No comments found in this category
+                </div>
+            `;
+            return;
+        }
+
+        const commentsHtml = comments.map(comment => `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">${comment.username}</h6>
+                            <p class="mb-1">${comment.comment}</p>
+                            <small class="text-muted">
+                                ${formatTimestamp(comment.timestamp)} | 
+                                Section: ${comment.section_name}
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-heart-fill"></i> ${comment.likes}
+                            </span>
+                        </div>
+                    </div>
+                    ${comment.replies && comment.replies.length > 0 ? `
+                        <div class="replies-section mt-3">
+                            ${comment.replies.map(reply => `
+                                <div class="card mb-2 reply-item ${reply.is_owner ? 'owner-reply' : ''}">
+                                    <div class="card-body py-2">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h6 class="mb-1">
+                                                    ${reply.username}
+                                                    ${reply.is_owner ? '<span class="owner-badge">Owner</span>' : ''}
+                                                </h6>
+                                                <p class="mb-1">${reply.comment}</p>
+                                                <small class="text-muted">${formatTimestamp(reply.timestamp)}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = commentsHtml;
+    }
+
+    // Call this function when the page loads
+    document.addEventListener('DOMContentLoaded', loadCategoryComments);
+</script>
+
+<style>
+    .comments-list {
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+
+    .owner-badge {
+        background-color: #198754;
+        color: white;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        margin-left: 0.5rem;
+    }
+
+    .reply-item {
+        background-color: #f8f9fa;
+        margin-left: 1.5rem;
+    }
+
+    .reply-item.owner-reply {
+        border-left: 3px solid #198754;
+    }
+</style>
+{% endblock %}
