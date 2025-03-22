@@ -10,10 +10,12 @@ import re
 from collections import defaultdict
 from threading import Lock
 from better_profanity import profanity  # Install with: pip install profanity-filter
+import os
 
 app = Flask(__name__, static_url_path='/static', static_folder='static')
 app.secret_key = secrets.token_hex(16)  # For session management
-CORS(app)
+# Update CORS to allow requests from any origin
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 @app.route('/')
 def index():
@@ -578,9 +580,50 @@ def toggle_like(comment_id):
             "success": False
         }), 500
 
+@app.route('/embed')
+def embed_comments():
+    url = request.args.get('url')
+    title = request.args.get('title')
+    site = request.args.get('site', 'default')
+    
+    if not url:
+        return "URL parameter is required", 400
+        
+    # Get or create a section for this URL
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    
+    # Check if section exists for this URL
+    c.execute('SELECT id FROM comment_sections WHERE section_name = ?', (title or url,))
+    section = c.fetchone()
+    
+    if not section:
+        # Create a new section for this URL
+        c.execute('''INSERT INTO comment_sections (user_id, section_name, created_at) 
+                   VALUES (?, ?, ?)''', 
+                 (session['user_id'], title or url, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        conn.commit()
+        section_id = c.lastrowid
+    else:
+        section_id = section[0]
+        
+    conn.close()
+    
+    # Pass the section_id to the template
+    return render_template('embed.html', section_id=section_id, url=url, title=title, site=site)
+
+@app.route('/v1/embed.js')
+def serve_embed_js():
+    """Serve the embed JS file with the correct content type"""
+    response = app.send_static_file('v1/embed.js')
+    response.headers['Content-Type'] = 'application/javascript'
+    return response
+
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True)
+    # Get port from environment variable (for Render)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
 
 def login_required(f):
     @wraps(f)

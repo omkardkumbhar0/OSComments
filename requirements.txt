@@ -1,1 +1,6 @@
-﻿Flask
+﻿Flask==2.2.3
+flask-cors==3.0.10
+Werkzeug==2.2.3
+gunicorn==20.1.0
+better_profanity==0.7.0
+python-dotenv==1.0.0
